@@ -12,7 +12,7 @@ mines = 0
 public_grid = []
 private_grid = []
 # TEMP VARIABLE TO TEST GAME FUNCTIONALITY AS I BUILD
-gameTest = True
+game_test = True
 
 # FUNCTIONS
 
@@ -180,82 +180,140 @@ def getHelp():
     print("Type 'help' for instructions")
     print("Type 'close' to end the game")
 
-# !!! PARSE PLAYER ENTRY. Checks if help, close, or flags are called. Calls cell conversion helpers
-# Still need to finish code for valid entries (checks and flags)
+# PARSE PLAYER ENTRY. Checks if help, close, or flags are called. Calls cell conversion helpers
 def parseEntry(entry):
     # TEMP VARIABLE USAGE FOR GAME TESTING
-    global gameTest
+    global game_test
+    global public_grid
+    global private_grid
 
-    if entry == "help":
+    # HELP CHECK
+    if entry.lower() == "help":
         getHelp()
-        return
+    # GAME CLOSE CHECK
     elif entry == "close":
-        closeGame()
-    elif entry[-2:] == "-p":
-        pass
-    elif len(entry) == 2:
+        print("Thanks for playing!")
+        exit()
+    # FLAG CHECK
+    elif entry[-2:] == "+p" or entry[-2:] == "+P":
         if entry[0].isupper() and entry[1].islower():
-            rowCoord, colCoord = publicConversion(entry)
-            privRow, privCol = privateConversion(rowCoord, colCoord)
-            # TEST PRINTS TO CHECK FOR CORRECT COORDINATE CONVERSIONS
-            print(rowCoord)
-            print(colCoord)
-            print(privRow)
-            print(privCol)
-            gameTest = False
+            row_coord, col_coord = publicConversion(entry)
+            plantFlag(public_grid, row_coord, col_coord)
         else:
             print("Invalid entry. Type 'help' for help.")
-            getGameInput()
+    # FLAG REMOVAL CHECK
+    elif entry[-2:] == "-p" or entry[-2:] == "-P":
+        if entry[0].isupper() and entry[1].islower():
+            row_coord, col_coord = publicConversion(entry)
+            removeFlag(public_grid, row_coord, col_coord)
+        else:
+            print("Invalid entry. Type 'help' for help.")
+    
+    # !!! VALID ENTRY CHECK
+    elif len(entry) == 2:
+        if entry[0].isupper() and entry[1].islower():
+            row_coord, col_coord = publicConversion(entry)
+            priv_row, priv_col = privateConversion(row_coord, col_coord)
+            # TEST PRINTS TO CHECK FOR CORRECT COORDINATE CONVERSIONS
+            print(row_coord)
+            print(col_coord)
+            print(priv_row)
+            print(priv_col)
+
+            # RETURNS TRUE IS PUBLIC CELL IS SELECTABLE (Has no flags or revealed numbers)
+            if publicCheck(public_grid, row_coord, col_coord):
+                # !!! RETRIEVES BACKEND VALUE OF SELECTED CELL AND UPDATES GRID                       
+                cellCheck(private_grid, priv_row, priv_col)
+            #game_test = False
+        else:
+            print("Invalid entry. Type 'help' for help.")
+    # INVALID ENTRY
     else:
         print("Invalid entry. Type 'help' for help.")
-        getGameInput()
 
-# !!! CONVERTS ENTRY TO PUBLIC GRID INDICES
+# CONVERTS ENTRY TO PUBLIC GRID INDICES
 def publicConversion(entry):
-    tempRowCoord = entry[0].lower()
-    tempColCoord = entry[1]
-    rowCoord = 0
-    colCoord = 0
+    temp_row_coord = entry[0].lower()
+    temp_col_coord = entry[1]
+    row_coord = 0
+    col_coord = 0
     for i in range(0, len(alc)):
-        if tempRowCoord == alc[i]:
-            rowCoord = i + 1
+        if temp_row_coord == alc[i]:
+            row_coord = i + 1
     for i in range(0, len(alc)):
-        if tempColCoord == alc[i]:
-            colCoord = i + 1
-    return rowCoord, colCoord
+        if temp_col_coord == alc[i]:
+            col_coord = i + 1
+    return row_coord, col_coord
 
 
-# !!! CONVERTS ENTRY TO PRIVATE GRID INDICES
-def privateConversion(rowCoord, colCoord):
-    privRow = rowCoord - 1
-    privCol = colCoord - 1
-    return privRow, privCol
+# CONVERTS ENTRY TO PRIVATE GRID INDICES
+def privateConversion(row_coord, col_coord):
+    priv_row = row_coord - 1
+    priv_col = col_coord - 1
+    return priv_row, priv_col
 
-# !!! PLANTS FLAG ON PUBLIC GRID
-def plantFlag():
-    pass
+# PLANTS FLAG ON PUBLIC GRID
+def plantFlag(grid, row_coord, col_coord):
+    if grid[row_coord][col_coord] == "_":
+        grid[row_coord][col_coord] = 'P'
+
+
+# REMOVE FLAG ON PUBLIC GRID
+def removeFlag(grid, row_coord, col_coord):
+    if grid[row_coord][col_coord] == 'P':
+        grid[row_coord][col_coord] = '_'
+
+# CHECKS FOR PUBLIC FLAG BEFORE CALL PRIVATE CELL CHECK
+def publicCheck(grid, row, col):
+    cell_value = grid[row][col]
+    if cell_value == "_":
+        return True
+    elif cell_value == "P":
+        print("Remove the flag before selecting this cell using the suffix '-p'.")
+        return False
+    elif cell_value >= "0":
+        print("This cell as already been selected, please make a different entry.")
+        return False
 
 # !!! CHECKS FOR CONTENTS OF PRIVATE CELL
-def cellCheck():
-    pass
+def cellCheck(grid, row, col):
+    cell_value = grid[row][col]
+    # PLAYER FOUND A MINE, TRIGGERS GAME END
+    if cell_value == "x":
+        hitMine(grid)
+    # !!! PLAYER FOUND A ZERO, CREATES 'NUMBER ENCLOSURE' AROUND CELL AND ADJACENT ZEROS
+    elif cell_value == "0":
+        hitZero()
+    # REVEALS NUMBER OF ADJACENT MINES ON PUBLIC GRID
+    elif int(cell_value) > 0:
+        updatePublic(cell_value, row, col)
 
-# !!! UPDATES PUBLIC GRID
-def updatePublic():
-    pass
+    
+    
+
+
+# UPDATES PUBLIC GRID
+def updatePublic(val, row, col):
+    global public_grid
+    public_grid[row + 1][col + 1] = val
 
 # !!! REVEALS CLUSTER OF CELLS WHEN A PLAYER FINDS A ZERO
 def hitZero():
     pass
 
+# TRIGGERS GAME END IF PLAYER HITS A MINE
+def hitMine(grid):
+    addCoordinates(grid)
+    for row_line in grid:
+        print(row_line)
+    print("You hit a mine, better luck next time!")
+    exit()
+
 # !!! CHECKS IF GAME END CONDITIONS ARE MET (Hit a mine or selected all non-mine cells)
 def endCheck():
     pass
 
-# !!! CLOSE GAME
-def closeGame():
-    pass
-    
-    
+
 
 # RETRIEVE GAME SETTINGS FROM USER
 getGameSettings()
@@ -264,7 +322,7 @@ getGameSettings()
 createGame(height, width, mines)
 
 # RUN GAME FOR TESTING
-while(gameTest):
+while(game_test):
     displayPublicGrid(public_grid)
     entry = getGameInput()
     parseEntry(entry)
