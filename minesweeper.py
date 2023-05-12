@@ -314,13 +314,13 @@ def adjacentCheck(direction, grid, row, col):
         if row > 0 and publicCheck(public_grid, row, col + 1):
             cellCheck(grid, row - 1, col)
     if direction == "ne":
-        if row > 0 and col < len(range(row)) - 1  and publicCheck(public_grid, row, col + 2):
+        if row > 0 and col < len(grid[0]) - 1  and publicCheck(public_grid, row, col + 2):
             cellCheck(grid, row - 1, col + 1)
     if direction == "e":
-        if col < len(range(row)) - 1 and publicCheck(public_grid, row + 1, col + 2):
+        if col < len(grid[0]) - 1 and publicCheck(public_grid, row + 1, col + 2):
             cellCheck(grid, row, col + 1)
     if direction == "se":
-        if row < len(grid) - 1 and col < len(range(row)) - 1 and publicCheck(public_grid, row + 2, col + 2):
+        if row < len(grid) - 1 and col < len(grid[0]) - 1 and publicCheck(public_grid, row + 2, col + 2):
             cellCheck(grid, row + 1, col + 1)
     if direction == "s":
         if row < len(grid) - 1 and publicCheck(public_grid, row + 2, col + 1):
@@ -329,7 +329,7 @@ def adjacentCheck(direction, grid, row, col):
         if row < len(grid) - 1 and col > 0 and publicCheck(public_grid, row + 2, col):
             cellCheck(grid, row + 1, col - 1)
     if direction == "w":
-        if col > 0 and publicCheck(public_grid, row, col + 1):
+        if col > 0 and publicCheck(public_grid, row + 1, col):
             cellCheck(grid, row, col - 1)
 
 # TRIGGERS GAME END IF PLAYER HITS A MINE
@@ -364,8 +364,6 @@ createGame(height, width, mines)
 # RUN GAME FOR TESTING
 while(True):
     displayPublicGrid(public_grid)
-    for row_line in private_grid:
-        print(row_line)
     entry = getGameInput()
     parseEntry(entry)
     endCheck(public_grid)
