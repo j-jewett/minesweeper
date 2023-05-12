@@ -11,8 +11,7 @@ mine_limit = 0
 mines = 0
 public_grid = []
 private_grid = []
-# TEMP VARIABLE TO TEST GAME FUNCTIONALITY AS I BUILD
-game_test = True
+
 
 # FUNCTIONS
 
@@ -35,20 +34,20 @@ def getHeight():
     global height
     while(True):
         try:
-            height = int(input("Please choose a height for this game (up to 20): "))
-            if height < 1 or height > 20:
+            height = int(input("Please choose a height for this game (between 5-26): "))
+            if height < 5 or height > 26:
                 raise TypeError
             break
         except TypeError:
-            print("Invalid entry. Please enter an integer between 1-20.")
+            print("Invalid entry. Please enter an integer between 5-26.")
 
 # RETRIEVE GAME WIDTH
 def getWidth():
     global width
     while(True):
         try:
-            width = int(input("Please choose a width for this game (up to 20): "))
-            if width < 1 or width > 20:
+            width = int(input("Please choose a width for this game (between 5-26): "))
+            if width < 5 or width > 20:
                 raise TypeError
             break
         except TypeError:
@@ -85,7 +84,7 @@ def createGame(height, width, mines):
 # RANDOM MINE GENERATION
 def generateMines(grid, mines):
     temp_mines = mines
-    while temp_mines > 0:
+    while temp_mines >= 1:
         for row in grid:
             for cell in range(0, len(row)):
                 if row[cell] != "x" and random.randint(1, area) == 1:
@@ -182,8 +181,6 @@ def getHelp():
 
 # PARSE PLAYER ENTRY. Checks if help, close, or flags are called. Calls cell conversion helpers
 def parseEntry(entry):
-    # TEMP VARIABLE USAGE FOR GAME TESTING
-    global game_test
     global public_grid
     global private_grid
 
@@ -209,22 +206,16 @@ def parseEntry(entry):
         else:
             print("Invalid entry. Type 'help' for help.")
     
-    # !!! VALID ENTRY CHECK
+    # VALID ENTRY CHECK
     elif len(entry) == 2:
         if entry[0].isupper() and entry[1].islower():
             row_coord, col_coord = publicConversion(entry)
             priv_row, priv_col = privateConversion(row_coord, col_coord)
-            # TEST PRINTS TO CHECK FOR CORRECT COORDINATE CONVERSIONS
-            print(row_coord)
-            print(col_coord)
-            print(priv_row)
-            print(priv_col)
-
+            
             # RETURNS TRUE IS PUBLIC CELL IS SELECTABLE (Has no flags or revealed numbers)
-            if publicCheck(public_grid, row_coord, col_coord):
-                # !!! RETRIEVES BACKEND VALUE OF SELECTED CELL AND UPDATES GRID                       
+            if publicCheck(public_grid, row_coord, col_coord, True):
+                # RETRIEVES BACKEND VALUE OF SELECTED CELL AND UPDATES GRID                       
                 cellCheck(private_grid, priv_row, priv_col)
-            #game_test = False
         else:
             print("Invalid entry. Type 'help' for help.")
     # INVALID ENTRY
@@ -264,29 +255,36 @@ def removeFlag(grid, row_coord, col_coord):
         grid[row_coord][col_coord] = '_'
 
 # CHECKS FOR PUBLIC FLAG BEFORE CALL PRIVATE CELL CHECK
-def publicCheck(grid, row, col):
+def publicCheck(grid, row, col, mode=False):
     cell_value = grid[row][col]
     if cell_value == "_":
         return True
     elif cell_value == "P":
-        print("Remove the flag before selecting this cell using the suffix '-p'.")
+        if mode:
+            print("Remove the flag before selecting this cell using the suffix '-p'.")
         return False
-    elif cell_value >= "0":
-        print("This cell as already been selected, please make a different entry.")
+    else:
+        if mode:
+            print("This cell as already been selected, please make a different entry.")
         return False
 
-# !!! CHECKS FOR CONTENTS OF PRIVATE CELL
+# CHECKS FOR CONTENTS OF PRIVATE CELL
 def cellCheck(grid, row, col):
-    cell_value = grid[row][col]
-    # PLAYER FOUND A MINE, TRIGGERS GAME END
-    if cell_value == "x":
-        hitMine(grid)
+    cell_value = grid[row][col]  
     # !!! PLAYER FOUND A ZERO, CREATES 'NUMBER ENCLOSURE' AROUND CELL AND ADJACENT ZEROS
-    elif cell_value == "0":
-        hitZero()
+    if cell_value == "0":
+        hitZero(grid, row, col)
     # REVEALS NUMBER OF ADJACENT MINES ON PUBLIC GRID
-    elif int(cell_value) > 0:
+    elif cell_value != "x":
         updatePublic(cell_value, row, col)
+    # PLAYER FOUND A MINE, TRIGGERS GAME END
+    elif cell_value == "x":
+        grid[row][col] = "X"
+        hitMine(grid)
+    
+    
+    
+    
 
     
     
@@ -298,8 +296,41 @@ def updatePublic(val, row, col):
     public_grid[row + 1][col + 1] = val
 
 # !!! REVEALS CLUSTER OF CELLS WHEN A PLAYER FINDS A ZERO
-def hitZero():
-    pass
+def hitZero(grid, row, col):
+    # LIST TO ITERATE THROUGH TO CHECK ADJACENT CELLS
+    updatePublic("0", row, col)
+    compass = ["nw", "n", "ne", "e", "se", "s", "sw", "w"]
+    for direction in compass:
+        # RETURNS TRUE IF CELL IN GIVEN DIRECTION EXISTS
+        adjacentCheck(direction, grid, row, col)   
+
+# !!! CHECKS IF ADJACENT 
+def adjacentCheck(direction, grid, row, col):
+    global public_grid
+    if direction == "nw":
+        if row > 0 and col > 0 and publicCheck(public_grid, row, col):
+            cellCheck(grid, row - 1, col - 1 )
+    if direction == "n":
+        if row > 0 and publicCheck(public_grid, row, col + 1):
+            cellCheck(grid, row - 1, col)
+    if direction == "ne":
+        if row > 0 and col < len(range(row)) - 1  and publicCheck(public_grid, row, col + 2):
+            cellCheck(grid, row - 1, col + 1)
+    if direction == "e":
+        if col < len(range(row)) - 1 and publicCheck(public_grid, row + 1, col + 2):
+            cellCheck(grid, row, col + 1)
+    if direction == "se":
+        if row < len(grid) - 1 and col < len(range(row)) - 1 and publicCheck(public_grid, row + 2, col + 2):
+            cellCheck(grid, row + 1, col + 1)
+    if direction == "s":
+        if row < len(grid) - 1 and publicCheck(public_grid, row + 2, col + 1):
+            cellCheck(grid, row + 1, col)
+    if direction == "sw":
+        if row < len(grid) - 1 and col > 0 and publicCheck(public_grid, row + 2, col):
+            cellCheck(grid, row + 1, col - 1)
+    if direction == "w":
+        if col > 0 and publicCheck(public_grid, row, col + 1):
+            cellCheck(grid, row, col - 1)
 
 # TRIGGERS GAME END IF PLAYER HITS A MINE
 def hitMine(grid):
@@ -309,9 +340,18 @@ def hitMine(grid):
     print("You hit a mine, better luck next time!")
     exit()
 
-# !!! CHECKS IF GAME END CONDITIONS ARE MET (Hit a mine or selected all non-mine cells)
-def endCheck():
-    pass
+# CHECKS IF GAME END CONDITIONS ARE MET (Hit a mine or selected all non-mine cells)
+def endCheck(grid):
+    global mines
+    empty_counter = 0
+    for row in grid:
+        for col in range(1, len(row)):
+            if row[col] == "_" or row[col] == "P":
+                empty_counter += 1
+    if empty_counter == mines:
+        displayPublicGrid(grid)
+        print("CONGRATS! You win!")
+        exit()
 
 
 
@@ -322,16 +362,13 @@ getGameSettings()
 createGame(height, width, mines)
 
 # RUN GAME FOR TESTING
-while(game_test):
+while(True):
     displayPublicGrid(public_grid)
+    for row_line in private_grid:
+        print(row_line)
     entry = getGameInput()
     parseEntry(entry)
+    endCheck(public_grid)
 
-# PUBLIC GRID TEST
-for row_line in public_grid:
-        print(row_line)
 
-# PRIVATE GRID TEST
-for row_line in private_grid:
-   print(row_line)
 
